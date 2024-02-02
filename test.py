@@ -33,8 +33,8 @@ def test_get_mcq(mcq_id):
 
 # Running the tests
 chapter_index = 1  # Replace with a valid chapter index
-# mcq_id = test_generate_mcq(chapter_index)
+mcq_id = test_generate_mcq(chapter_index)
 # print(mcq_id)
 mcq_id = 1  # Replace with a valid MCQ ID
 test_submit_answer(mcq_id, "A")  # Replace "A" with a chosen answer option
-# test_get_mcq(mcq_id)
+test_get_mcq(mcq_id) # gets the mcq details
