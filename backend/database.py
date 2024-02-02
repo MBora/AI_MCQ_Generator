@@ -15,4 +15,13 @@ mcqs = Table('mcqs', metadata,
     Column('correct_answer', String(255), nullable=False),
     Column('explanation', Text, nullable=False)
 )
+
+# New Users table
+users = Table('users', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('username', String(50), unique=True, nullable=False),
+    Column('email', String(255), unique=True, nullable=False),
+    Column('hashed_password', String(255), nullable=False)
+)
+
 metadata.create_all(engine)

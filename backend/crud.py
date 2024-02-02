@@ -1,5 +1,7 @@
 from sqlalchemy import insert
 from database import engine, mcqs
+from database import engine, mcqs, users
+from sqlalchemy import select
 
 def insert_mcq(mcq_data):
     with engine.connect() as connection:
@@ -43,3 +45,31 @@ def get_mcq_details(mcq_id: int):
             return mcq_details
         else:
             return None
+
+def create_user(username: str, email: str, hashed_password: str):
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            ins_query = users.insert().values(
+                username=username,
+                email=email,
+                hashed_password=hashed_password
+            )
+            connection.execute(ins_query)
+            transaction.commit()
+        except Exception as e:
+            transaction.rollback()
+            print("Error during user insertion:", e)
+            return None
+
+def get_user_by_username(username: str):
+    with engine.connect() as connection:
+        query = select(users).where(users.c.username == username)  # Corrected line
+        result = connection.execute(query).fetchone()
+        return result
+
+def get_user_by_email(email: str):
+    with engine.connect() as connection:
+        query = select([users]).where(users.c.email == email)
+        result = connection.execute(query).fetchone()
+        return result

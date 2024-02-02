@@ -25,6 +25,16 @@ app = FastAPI()
 
 from llama_index.schema import MetadataMode
 
+# Additional imports in main.py
+from crud import create_user, get_user_by_username
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import Depends, status
+from pydantic import BaseModel
+from schemas import UserCreate, Token, User
+from dependencies import create_access_token, verify_password, get_password_hash, get_current_user
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 @app.post("/generate-mcq/{chapter_index}")
 async def generate_mcq(chapter_index: int = 0):
     # get the list of pkls from the processed_data folder
@@ -103,6 +113,33 @@ async def get_mcq(mcq_id: int):
     if mcq_info:
         return mcq_info
     raise HTTPException(status_code=404, detail="MCQ not found")
+
+@app.post("/signup/", response_model=UserCreate)
+async def signup(user_data: UserCreate):
+    hashed_password = get_password_hash(user_data.password)
+    user = create_user(user_data.username, user_data.email, hashed_password)
+    if user is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Username or email already exists. Please choose a different one."
+        )
+    return user_data
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = get_user_by_username(form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/users/me/", response_model=User)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 # Run the server
 if __name__ == "__main__":
