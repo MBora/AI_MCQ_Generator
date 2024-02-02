@@ -36,7 +36,7 @@ from dependencies import create_access_token, verify_password, get_password_hash
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.post("/generate-mcq/{chapter_index}")
-async def generate_mcq(chapter_index: int = 0):
+async def generate_mcq(chapter_index: int = 0, current_user: User = Depends(get_current_user)):
     # get the list of pkls from the processed_data folder
     pkls = []
     try:
@@ -96,7 +96,7 @@ async def generate_mcq(chapter_index: int = 0):
     # return mcq_response
 
 @app.post("/submit-answer/")
-async def submit_answer(mcq_id: int = Body(...), user_answer: str = Body(...)):
+async def submit_answer(mcq_id: int = Body(...), user_answer: str = Body(...), current_user: User = Depends(get_current_user)):
     mcq_info = get_mcq_details(mcq_id)
 
     if mcq_info is None:
@@ -108,7 +108,7 @@ async def submit_answer(mcq_id: int = Body(...), user_answer: str = Body(...)):
         return {"result": "Incorrect", "correct_answer": mcq_info["correct_answer"], "explanation": mcq_info["explanation"]}
 
 @app.get("/get-mcq/{mcq_id}")
-async def get_mcq(mcq_id: int):
+async def get_mcq(mcq_id: int, current_user: User = Depends(get_current_user)):
     mcq_info = get_mcq_details(mcq_id)
     if mcq_info:
         return mcq_info
