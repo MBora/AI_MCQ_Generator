@@ -44,10 +44,10 @@ def test_protected_endpoint_with_wrong_token(endpoint):
     response = requests.get(url, headers=headers)
     return response.status_code, response.text
 
-# # Testing Signup
-# print("Testing Signup...")
-# signup_response = signup("testuser", "testuser@example.com", "password123")
-# print(signup_response)
+# Testing Signup
+print("Testing Signup...")
+signup_response = signup("testuser5", "testuser5@example.com", "password123")
+print(signup_response)
 
 # Testing Login
 print("\nTesting Login...")

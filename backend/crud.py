@@ -48,6 +48,10 @@ def get_mcq_details(mcq_id: int):
 
 def create_user(username: str, email: str, hashed_password: str):
     with engine.connect() as connection:
+        # Check if the user already exists
+        if get_user_by_username(username) is not None or get_user_by_email(email) is not None:
+            return None
+
         transaction = connection.begin()
         try:
             ins_query = users.insert().values(
@@ -57,19 +61,21 @@ def create_user(username: str, email: str, hashed_password: str):
             )
             connection.execute(ins_query)
             transaction.commit()
+            return {"username": username, "email": email, "hashed_password": hashed_password}
         except Exception as e:
             transaction.rollback()
             print("Error during user insertion:", e)
+            # Here you can add specific handling for unique constraint violations
             return None
 
 def get_user_by_username(username: str):
     with engine.connect() as connection:
-        query = select(users).where(users.c.username == username)  # Corrected line
+        query = select(users).where(users.c.username == username)  # Select the entire user row
         result = connection.execute(query).fetchone()
         return result
 
 def get_user_by_email(email: str):
     with engine.connect() as connection:
-        query = select([users]).where(users.c.email == email)
+        query = select(users.c.id).where(users.c.email == email)  # Select only the id column
         result = connection.execute(query).fetchone()
         return result
