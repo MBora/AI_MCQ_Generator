@@ -104,6 +104,18 @@ async def get_mcq(mcq_id: int):
         return mcq_info
     raise HTTPException(status_code=404, detail="MCQ not found")
 
+@app.get("/list-chapters")
+async def list_chapters():
+    # Path to the processed_data folder
+    processed_data_folder = "../processed_data"  # Adjust the path as necessary
+    try:
+        # List all .pkl files in the folder
+        pkl_files = [file_name for file_name in os.listdir(processed_data_folder) if file_name.endswith(".pkl")]
+        # print("pkl_files", pkl_files)
+        return {"chapters": pkl_files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing chapters: {str(e)}")
+
 # Run the server
 if __name__ == "__main__":
     import uvicorn

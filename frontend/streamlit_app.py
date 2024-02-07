@@ -28,7 +28,17 @@ def submit_answer(mcq_id, user_answer):
     else:
         st.error("Error submitting answer")
         return None
-
+    
+def fetch_chapter_names():
+    response = requests.get(f"{BACKEND_URL}/list-chapters")
+    if response.status_code == 200:
+        # Remove the '.pkl' extension from each chapter name
+        chapters = response.json().get("chapters", [])
+        chapter_names = [chapter.rstrip('.pkl') for chapter in chapters]
+        return chapter_names
+    else:
+        st.error("Error fetching chapter names")
+        return []
 
 def main():
     # Check if logged in
@@ -61,23 +71,33 @@ def main():
         if st.sidebar.button('Sign Out'):
             auth_functions.sign_out()
             st.rerun()
-            
+
         st.title("MCQ Generator")
 
         if 'mcq_details' not in st.session_state:
             st.session_state['mcq_details'] = None
             st.session_state['mcq_id'] = None
 
-        chapter_index = st.number_input("Enter Chapter Index", value=1, step=1)
-        generate_button = st.button("Generate MCQ")
+        # Fetch chapter names from the backend
+        chapter_names = fetch_chapter_names()
 
-        if generate_button:
-            mcq_id = generate_mcq(chapter_index)
-            if mcq_id:
-                mcq_details = get_mcq(mcq_id)
-                if mcq_details:
-                    st.session_state['mcq_details'] = mcq_details
-                    st.session_state['mcq_id'] = mcq_id
+        # Add None or a default selection prompt as the first option
+        chapter_names.insert(0, "Select a chapter")
+        selected_chapter_name = st.selectbox("Choose a Chapter", chapter_names)
+
+        # Only enable MCQ generation if a chapter is selected
+        if selected_chapter_name != "Select a chapter":
+            generate_button = st.button("Generate MCQ")
+
+            if generate_button:
+                # Find the index of the selected chapter name
+                chapter_index = chapter_names.index(selected_chapter_name) - 1  # Adjust for the added default selection
+                mcq_id = generate_mcq(chapter_index)
+                if mcq_id:
+                    mcq_details = get_mcq(mcq_id)
+                    if mcq_details:
+                        st.session_state['mcq_details'] = mcq_details
+                        st.session_state['mcq_id'] = mcq_id
 
         if st.session_state['mcq_details']:
             st.write("Question:", st.session_state['mcq_details']["question"])
