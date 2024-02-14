@@ -187,7 +187,7 @@ def main():
                 if response.status_code == 200:
                     st.success("Quiz saved successfully.")
                 else:
-                    st.error(f"Failed to save the quiz. Response: {response.text}")
+                    st.error(f"Failed to save the quiz. Please ensure that the Quiz name is unique.")
 
 if __name__ == "__main__":
     main()

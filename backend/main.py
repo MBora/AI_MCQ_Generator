@@ -162,8 +162,16 @@ async def save_quiz_results(request: Request):
         raise HTTPException(status_code=404, detail="User not found")
 
     # Save quiz results to the database, including MCQ IDs
-    save_quiz_result_to_db(user_info['uid'], quiz_name, json.dumps(mcq_ids), score)
-
+    quiz_id = save_quiz_result_to_db(user_info['uid'], quiz_name, json.dumps(mcq_ids), score)
+    if quiz_id is not None:
+        # If the quiz_id is not None, the insertion was successful
+        return {"message": "Quiz saved successfully.", "quiz_id": quiz_id}
+    else:
+        # If the function returned None, an error occurred
+        # This assumes that every failure is due to a duplicate quiz name, which might not always be the case
+        # It's a more generic error response, not specifically tied to the IntegrityError
+        raise HTTPException(status_code=400, detail="An error occurred while saving the quiz")
+    
 # @app.get("/quiz-history/{user_uid}")
 # async def get_quiz_history(user_uid: str):
 #     # Fetch quiz history from the database for the given user UID
