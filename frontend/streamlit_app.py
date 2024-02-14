@@ -68,11 +68,13 @@ def fetch_chapter_names():
         return []
 
 def register_user(email):
+    # Make a POST request to the backend to register/fetch the user
     response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email})
-    if response.status_code == 200:
-        return response.json()
+    if response.status_code in [200, 201]:  # Considering both 'OK' and 'Created' responses
+        user_data = response.json()
+        return user_data  # This includes UID and potentially other user data
     else:
-        st.error(f"Error registering/fetching user: {response.status_code}, {response.text}")
+        print(f"Failed to register/check user in the database: {response.text}")
         return None
 
 def main():
@@ -85,11 +87,6 @@ def main():
 
         if do_you_have_an_account == 'Yes' and st.button('Sign In'):
             response = sign_in(email, password)
-            if 'auth_success' in st.session_state:
-                st.success(st.session_state['auth_success'])
-                register_user(email)  # Additional database registration step
-            elif 'auth_warning' in st.session_state:
-                st.error(st.session_state['auth_warning'])
 
         elif do_you_have_an_account == 'No' and st.button('Create Account'):
             response = create_account(email, password)
@@ -106,6 +103,13 @@ def main():
             else:
                 st.error("Failed to send password reset email.")
     else:
+        email = st.session_state.user_info.get("email")
+        user_data = register_user(email)  # Function to check/register user in DB
+        if user_data:
+            st.session_state.user_info["uid"] = user_data.get("uid")
+            print("OK")
+            # You might want to display a success message or proceed silently
+
         if st.sidebar.button('Sign Out'):
             sign_out()
             st.rerun()
@@ -156,6 +160,15 @@ def main():
                     else:
                         st.error(f"Q{i+1}: Incorrect! Correct Answer: {correct_option}. Explanation: {mcq['explanation']}")
                 st.write(f"Your score: {score}/{len(st.session_state['mcq_details'])}")
+                quiz_results = {
+                    "quiz_data": st.session_state['mcq_details'],
+                    "score": score
+                }
+                response = requests.post(f"{BACKEND_URL}/save-quiz-results/", json={"email": st.session_state['user_info']['email'], "quiz_results": quiz_results})
+                if response.status_code == 200:
+                    st.success("Quiz results saved successfully")
+                else:
+                    st.error("Failed to save quiz results")
 
 if __name__ == "__main__":
     main()

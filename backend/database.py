@@ -1,5 +1,7 @@
 #database.py
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Text
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Text, ForeignKey, JSON
+from sqlalchemy import DateTime
+import datetime
 
 DATABASE_URL = "mysql+pymysql://root:my-secret-pw@localhost/mcq_database"
 engine = create_engine(DATABASE_URL)
@@ -21,6 +23,14 @@ users = Table('users', metadata,
     Column('uid', String(255), primary_key=True),
     Column('email', String(255), nullable=False, unique=True),
     # Add other fields here as needed
+)
+
+quiz_results = Table('quiz_results', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('user_uid', String(255), ForeignKey('users.uid')),
+    Column('quiz_data', JSON),  # This will store quiz questions, options, and user answers
+    Column('score', Integer),
+    Column('timestamp', DateTime, default=datetime.datetime.utcnow)
 )
 
 metadata.create_all(engine)

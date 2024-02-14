@@ -81,6 +81,7 @@ def sign_in(email:str, password:str) -> None:
         # Save user info to session state and rerun
         else:
             st.session_state.user_info = user_info
+            print(st.session_state.user_info)
             st.rerun()
 
     except requests.exceptions.HTTPError as error:

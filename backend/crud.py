@@ -1,6 +1,6 @@
 #crud.py
 from sqlalchemy import insert, select
-from database import engine, mcqs, users
+from database import engine, mcqs, users, quiz_results
 import uuid
 
 def insert_mcq(mcq_data):
@@ -82,10 +82,54 @@ def get_user_by_email(email: str):
         # Prepare a SELECT statement
         query = select(users).where(users.c.email == email)
         result = connection.execute(query).fetchone()
-
+        print(f"Result: {result}")
+        print("Email", email)
         if result:
             # Convert the result into a dictionary for easier access
             user_info = {column: value for column, value in zip(result.keys(), result)}
+            print(f"User Info: {user_info}")
             return user_info
         else:
+            return None
+        
+from sqlalchemy import select
+
+def get_user_by_email_safe(email: str):
+    with engine.connect() as connection:
+        # Here's the corrected usage without the list
+        query = select(users.c.uid, users.c.email).where(users.c.email == email)
+        result = connection.execute(query).fetchone()
+        print("RESULT", result)
+        
+        if result:
+            # Safely construct a dictionary from the RowProxy
+            user_info_safe = {
+                "uid": result[0],  # UID
+                "email": result[1]  # Email
+            }
+            print(f"Safely fetched user info: {user_info_safe}")
+            return user_info_safe
+        else:
+            print(f"No user found with email: {email}")
+            return None
+
+
+
+def save_quiz_result_to_db(user_uid, quiz_data, score):
+    print(f"Preparing to save quiz result: UID: {user_uid}, Score: {score}, Quiz Data: {quiz_data}")
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            # Assuming 'quiz_history' is imported or accessible within this context
+            ins_query = quiz_results.insert().values(
+                user_uid=user_uid,
+                quiz_data=quiz_data,
+                score=score
+            )
+            result = connection.execute(ins_query)
+            transaction.commit()
+            return result.inserted_primary_key[0]  # Returning the primary key (id) of the inserted record
+        except Exception as e:
+            transaction.rollback()
+            print(f"Error saving quiz result: {e}")
             return None

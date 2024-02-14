@@ -4,14 +4,14 @@ import openai
 from openai import OpenAI
 import llama_index.llms
 import random
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 import pickle
 from fastapi import Body
 import json
 import uuid
 from pydantic import BaseModel
 # Database stuff
-from crud import insert_mcq, get_mcq_details, insert_user, get_user_by_email
+from crud import insert_mcq, get_mcq_details, insert_user, get_user_by_email, save_quiz_result_to_db, get_user_by_email_safe
 from database import engine, mcqs
 import logging
 
@@ -125,6 +125,7 @@ async def list_chapters():
 class UserRegister(BaseModel):
     email: str
 import logging
+
 @app.post("/register-user")
 async def register_user(user: UserRegister):
     
@@ -132,6 +133,7 @@ async def register_user(user: UserRegister):
     logger.info(f"Registering user: {user.email}")
     print(f"Received registration request for email: {user.email}")
     # Assuming get_user_by_email and insert_user are properly defined in your backend
+    print("USER EMAIL", user.email)
     existing_user = get_user_by_email(user.email)
     if existing_user:
         # User exists, return their existing UID
@@ -145,6 +147,27 @@ async def register_user(user: UserRegister):
             return {"uid": user_uid}
         else:
             raise HTTPException(status_code=500, detail="Error registering user")
+
+@app.post("/save-quiz-results/")
+async def save_quiz_results(request: Request):
+    body = await request.json()
+    print(f"Request body: {body}")
+    
+    # Adjusted to match the structure sent from Streamlit
+    quiz_details = body.get('quiz_results')
+    if not quiz_details:
+        raise HTTPException(status_code=400, detail="Missing quiz results data")
+
+    user_email = body.get('email')
+    quiz_data = quiz_details.get('quiz_data')
+    score = quiz_details.get('score')
+
+    user_info = get_user_by_email_safe(user_email)
+    if not user_info:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    save_quiz_result_to_db(user_info['uid'], quiz_data, score)
+    return {"message": "Quiz results saved successfully"}
 
 # Run the server
 if __name__ == "__main__":
