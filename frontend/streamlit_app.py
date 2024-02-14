@@ -1,3 +1,4 @@
+#streamlit_app.py
 import streamlit as st
 import requests
 import auth_functions
@@ -40,6 +41,20 @@ def fetch_chapter_names():
         st.error("Error fetching chapter names")
         return []
 
+def register_user(email):
+    # Check if the user already exists in the database
+    existing_user = get_user_by_email(email)  # You would need to implement this function
+    if existing_user:
+        # User exists, return existing UID without creating a new entry
+        return {"uid": existing_user["uid"]}
+    else:
+        # Generate a new UID and insert the user into the database
+        response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email})
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+
 def main():
     # Check if logged in
     if 'user_info' not in st.session_state:
@@ -52,7 +67,19 @@ def main():
 
         # Authentication logic
         if do_you_have_an_account == 'Yes' and st.button('Sign In'):
+            # Use the existing sign in function
             auth_functions.sign_in(email, password)
+            if 'user_info' in st.session_state:  # Check if login was successful and user_info is set
+                # Now, register the user in your own database
+                user_response = register_user(email)  # Assuming this function communicates with your FastAPI backend
+                if user_response:
+                    uid = user_response.get('uid')  # Assuming the backend returns a UID
+                    # Optionally update session state with UID or other details
+                    st.session_state['user_info']['uid'] = uid
+                    st.success("Logged in successfully. Your UID is: {}".format(uid))
+                else:
+                    st.error("Logged in, but there was an issue registering your details in the database.")
+
         elif do_you_have_an_account == 'No' and st.button('Create Account'):
             auth_functions.create_account(email, password)
         elif do_you_have_an_account == 'I forgot my password' and st.button('Send Password Reset Email'):

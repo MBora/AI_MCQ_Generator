@@ -1,3 +1,4 @@
+#auth_functions.py
 import json
 import requests
 import streamlit as st
@@ -115,7 +116,6 @@ def create_account(email:str, password:str) -> None:
     except Exception as error:
         print(error)
         st.session_state.auth_warning = 'Error: Please try again later'
-
 
 def reset_password(email:str) -> None:
     try:

@@ -8,9 +8,10 @@ from fastapi import FastAPI, HTTPException, Query
 import pickle
 from fastapi import Body
 import json
-
+import uuid
+from pydantic import BaseModel
 # Database stuff
-from crud import insert_mcq, get_mcq_details
+from crud import insert_mcq, get_mcq_details, insert_user
 from database import engine, mcqs
 
 # load OPENAI_API_KEY from .env file
@@ -115,6 +116,22 @@ async def list_chapters():
         return {"chapters": pkl_files}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing chapters: {str(e)}")
+
+
+class UserRegister(BaseModel):
+    email: str
+
+@app.post("/register-user")
+async def register_user(user: UserRegister):
+    # Generate a unique UID
+    user_uid = str(uuid.uuid4())
+    # Insert the user's email and UID into the database
+    # Assuming you have a function like `insert_user` from previous examples
+    user_id, _ = insert_user({"uid": user_uid, "email": user.email})
+    if user_id:
+        return {"uid": user_uid}
+    else:
+        raise HTTPException(status_code=500, detail="Error registering user")
 
 # Run the server
 if __name__ == "__main__":

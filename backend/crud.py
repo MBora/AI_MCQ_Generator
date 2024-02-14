@@ -1,5 +1,7 @@
-from sqlalchemy import insert
-from database import engine, mcqs
+#crud.py
+from sqlalchemy import insert, select
+from database import engine, mcqs, users
+import uuid
 
 def insert_mcq(mcq_data):
     with engine.connect() as connection:
@@ -41,5 +43,36 @@ def get_mcq_details(mcq_id: int):
                 "explanation": result[8]
             }
             return mcq_details
+        else:
+            return None
+
+def insert_user(user_data):
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        try:
+            # Generate a unique UUID
+            user_uuid = str(uuid.uuid4())
+            ins_query = users.insert().values(
+                uid=user_uuid,  # Use the generated UUID
+                email=user_data["email"],
+                # Add other fields as needed
+            )
+            result = connection.execute(ins_query)
+            user_id = result.inserted_primary_key[0]
+            transaction.commit()
+            # Return both the internal user ID and the UUID
+            return user_id, user_uuid
+        except Exception as e:
+            transaction.rollback()
+            print("Error during user insertion:", e)
+            return None, None
+
+def get_user_by_uid(uid: str):
+    with engine.connect() as connection:
+        select_query = select(users).where(users.c.uid == uid)
+        result = connection.execute(select_query).fetchone()
+        if result:
+            user_info = {column: value for column, value in zip(result.keys(), result)}
+            return user_info
         else:
             return None
