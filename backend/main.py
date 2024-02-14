@@ -94,7 +94,10 @@ async def submit_answer(mcq_id: int = Body(...), user_answer: str = Body(...)):
     if mcq_info is None:
         raise HTTPException(status_code=404, detail="MCQ not found")
 
-    if user_answer == mcq_info["correct_answer"]:
+    print(f"User Answer: '{user_answer}'")
+    print(f"Correct Answer: '{mcq_info['correct_answer']}'")
+
+    if user_answer.strip() == mcq_info["correct_answer"].strip():
         return {"result": "Correct", "explanation": mcq_info["explanation"]}
     else:
         return {"result": "Incorrect", "correct_answer": mcq_info["correct_answer"], "explanation": mcq_info["explanation"]}
