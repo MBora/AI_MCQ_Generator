@@ -1,6 +1,7 @@
 #streamlit_app.py
 import streamlit as st
 import requests
+from auth_functions import sign_in, create_account, sign_out, reset_password
 import auth_functions
 
 # FastAPI backend URL
@@ -42,56 +43,45 @@ def fetch_chapter_names():
         return []
 
 def register_user(email):
-    # Check if the user already exists in the database
-    existing_user = get_user_by_email(email)  # You would need to implement this function
-    if existing_user:
-        # User exists, return existing UID without creating a new entry
-        return {"uid": existing_user["uid"]}
+    response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email})
+    if response.status_code == 200:
+        return response.json()
     else:
-        # Generate a new UID and insert the user into the database
-        response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email})
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
+        st.error(f"Error registering/fetching user: {response.status_code}, {response.text}")
+        return None
 
 def main():
-    # Check if logged in
     if 'user_info' not in st.session_state:
         st.title("Welcome to the MCQ Generator!")
         
-        # Authentication form
-        do_you_have_an_account = st.selectbox(label='Do you have an account?', options=('Yes', 'No', 'I forgot my password'))
-        email = st.text_input(label='Email')
-        password = st.text_input(label='Password', type='password') if do_you_have_an_account in {'Yes', 'No'} else None
+        do_you_have_an_account = st.selectbox('Do you have an account?', ['Yes', 'No', 'I forgot my password'])
+        email = st.text_input('Email')
+        password = st.text_input('Password', type='password') if do_you_have_an_account in ['Yes', 'No'] else None
 
-        # Authentication logic
         if do_you_have_an_account == 'Yes' and st.button('Sign In'):
-            # Use the existing sign in function
-            auth_functions.sign_in(email, password)
-            if 'user_info' in st.session_state:  # Check if login was successful and user_info is set
-                # Now, register the user in your own database
-                user_response = register_user(email)  # Assuming this function communicates with your FastAPI backend
-                if user_response:
-                    uid = user_response.get('uid')  # Assuming the backend returns a UID
-                    # Optionally update session state with UID or other details
-                    st.session_state['user_info']['uid'] = uid
-                    st.success("Logged in successfully. Your UID is: {}".format(uid))
-                else:
-                    st.error("Logged in, but there was an issue registering your details in the database.")
-
+            response = sign_in(email, password)
+            if response and response.get('success'):
+                register_user(email)  # Additional database registration step
+            else:
+                st.error("Login failed. Please try again.")
+        
         elif do_you_have_an_account == 'No' and st.button('Create Account'):
-            auth_functions.create_account(email, password)
+            response = create_account(email, password)
+            if response and response.get('success'):
+                register_user(email)  # Registers the user in your database
+                if response.get('verification_email_sent'):
+                    st.success("Account created successfully. Verification email has been sent.")
+                else:
+                    st.warning("Account created but there was an issue sending the verification email.")
+            else:
+                st.error("Account creation failed. Please try again.")
+        
         elif do_you_have_an_account == 'I forgot my password' and st.button('Send Password Reset Email'):
-            auth_functions.reset_password(email)
-
-        # Display authentication messages
-        if 'auth_success' in st.session_state:
-            st.success(st.session_state.auth_success)
-            del st.session_state.auth_success
-        if 'auth_warning' in st.session_state:
-            st.error(st.session_state.auth_warning)
-            del st.session_state.auth_warning
+            reset_password_response = reset_password(email)
+            if reset_password_response.get('success'):
+                st.success("Password reset email sent.")
+            else:
+                st.error("Failed to send password reset email.")
 
     else:
         # Place for the sign-out button

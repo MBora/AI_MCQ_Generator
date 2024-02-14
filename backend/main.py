@@ -11,8 +11,9 @@ import json
 import uuid
 from pydantic import BaseModel
 # Database stuff
-from crud import insert_mcq, get_mcq_details, insert_user
+from crud import insert_mcq, get_mcq_details, insert_user, get_user_by_email
 from database import engine, mcqs
+import logging
 
 # load OPENAI_API_KEY from .env file
 from dotenv import load_dotenv
@@ -120,18 +121,27 @@ async def list_chapters():
 
 class UserRegister(BaseModel):
     email: str
-
+import logging
 @app.post("/register-user")
 async def register_user(user: UserRegister):
-    # Generate a unique UID
-    user_uid = str(uuid.uuid4())
-    # Insert the user's email and UID into the database
-    # Assuming you have a function like `insert_user` from previous examples
-    user_id, _ = insert_user({"uid": user_uid, "email": user.email})
-    if user_id:
-        return {"uid": user_uid}
+    
+    logger = logging.getLogger("uvicorn.info")
+    logger.info(f"Registering user: {user.email}")
+    print(f"Received registration request for email: {user.email}")
+    # Assuming get_user_by_email and insert_user are properly defined in your backend
+    existing_user = get_user_by_email(user.email)
+    if existing_user:
+        # User exists, return their existing UID
+        return {"uid": existing_user["uid"]}
     else:
-        raise HTTPException(status_code=500, detail="Error registering user")
+        # User does not exist, so generate a new UID (or use Firebase UID if available)
+        user_uid = str(uuid.uuid4())
+        # Insert the new user with this UID and email into the database
+        user_id, user_uid = insert_user({"uid": user_uid, "email": user.email})
+        if user_id:
+            return {"uid": user_uid}
+        else:
+            raise HTTPException(status_code=500, detail="Error registering user")
 
 # Run the server
 if __name__ == "__main__":

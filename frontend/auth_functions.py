@@ -95,27 +95,21 @@ def sign_in(email:str, password:str) -> None:
         st.session_state.auth_warning = 'Error: Please try again later'
 
 
-def create_account(email:str, password:str) -> None:
+def create_account(email: str, password: str) -> dict:
     try:
-        # Create account (and save id_token)
-        id_token = create_user_with_email_and_password(email,password)['idToken']
-
-        # Create account and send email verification
-        send_email_verification(id_token)
-        st.session_state.auth_success = 'Check your inbox to verify your email'
-    
-    except requests.exceptions.HTTPError as error:
-        error_message = json.loads(error.args[1])['error']['message']
-        if error_message == "EMAIL_EXISTS":
-            st.session_state.auth_warning = 'Error: Email belongs to existing account'
-        elif error_message in {"INVALID_EMAIL","INVALID_PASSWORD","MISSING_PASSWORD","MISSING_EMAIL","WEAK_PASSWORD"}:
-            st.session_state.auth_warning = 'Error: Use a valid email and password'
+        user_creation_response = create_user_with_email_and_password(email, password)
+        id_token = user_creation_response['idToken']
+        
+        # Assuming the function below sends an email verification and returns success status
+        verification_response = send_email_verification(id_token)
+        
+        if verification_response.get('success', False):
+            return {'success': True, 'email': email, 'verification_email_sent': True}
         else:
-            st.session_state.auth_warning = 'Error: Please try again later'
-    
+            return {'success': True, 'email': email, 'verification_email_sent': False}
     except Exception as error:
         print(error)
-        st.session_state.auth_warning = 'Error: Please try again later'
+        return {'success': False, 'error': str(error)}
 
 def reset_password(email:str) -> None:
     try:

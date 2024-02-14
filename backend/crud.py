@@ -76,3 +76,16 @@ def get_user_by_uid(uid: str):
             return user_info
         else:
             return None
+
+def get_user_by_email(email: str):
+    with engine.connect() as connection:
+        # Prepare a SELECT statement
+        query = select(users).where(users.c.email == email)
+        result = connection.execute(query).fetchone()
+
+        if result:
+            # Convert the result into a dictionary for easier access
+            user_info = {column: value for column, value in zip(result.keys(), result)}
+            return user_info
+        else:
+            return None
