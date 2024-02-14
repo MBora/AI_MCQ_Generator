@@ -151,23 +151,32 @@ async def register_user(user: UserRegister):
 @app.post("/save-quiz-results/")
 async def save_quiz_results(request: Request):
     body = await request.json()
-    print(f"Request body: {body}")
-    
-    # Adjusted to match the structure sent from Streamlit
-    quiz_details = body.get('quiz_results')
-    if not quiz_details:
-        raise HTTPException(status_code=400, detail="Missing quiz results data")
-
     user_email = body.get('email')
-    quiz_data = quiz_details.get('quiz_data')
-    score = quiz_details.get('score')
+    quiz_name = body.get('quiz_name')
+    mcq_ids = body.get('mcq_ids')  # A list of MCQ IDs
+    score = body.get('score')
 
+    # Fetch user information using the email
     user_info = get_user_by_email_safe(user_email)
     if not user_info:
         raise HTTPException(status_code=404, detail="User not found")
 
-    save_quiz_result_to_db(user_info['uid'], quiz_data, score)
-    return {"message": "Quiz results saved successfully"}
+    # Save quiz results to the database, including MCQ IDs
+    save_quiz_result_to_db(user_info['uid'], quiz_name, json.dumps(mcq_ids), score)
+
+# @app.get("/quiz-history/{user_uid}")
+# async def get_quiz_history(user_uid: str):
+#     # Fetch quiz history from the database for the given user UID
+#     # This is a placeholder function call
+#     quiz_history = fetch_quiz_history_for_user(user_uid)
+#     return quiz_history
+
+# @app.get("/quiz-details/{quiz_id}")
+# async def get_quiz_details(quiz_id: int):
+#     # Fetch details for a specific quiz
+#     # This is a placeholder function call
+#     quiz_details = fetch_quiz_details(quiz_id)
+#     return quiz_details
 
 # Run the server
 if __name__ == "__main__":

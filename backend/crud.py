@@ -113,21 +113,20 @@ def get_user_by_email_safe(email: str):
             print(f"No user found with email: {email}")
             return None
 
-
-
-def save_quiz_result_to_db(user_uid, quiz_data, score):
-    print(f"Preparing to save quiz result: UID: {user_uid}, Score: {score}, Quiz Data: {quiz_data}")
+def save_quiz_result_to_db(user_uid, quiz_name, mcq_ids_json, score):
+    print(f"User UID: {user_uid}, Quiz Name: {quiz_name}, MCQ IDs JSON: {mcq_ids_json}, Score: {score}")
     with engine.connect() as connection:
         transaction = connection.begin()
         try:
-            # Assuming 'quiz_history' is imported or accessible within this context
             ins_query = quiz_results.insert().values(
                 user_uid=user_uid,
-                quiz_data=quiz_data,
+                quiz_name=quiz_name,  # Include the quiz name in the insert values
+                quiz_data=mcq_ids_json,
                 score=score
             )
             result = connection.execute(ins_query)
             transaction.commit()
+            print("Quiz result saved successfully.")
             return result.inserted_primary_key[0]  # Returning the primary key (id) of the inserted record
         except Exception as e:
             transaction.rollback()

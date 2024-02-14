@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 from auth_functions import sign_in, create_account, sign_out, reset_password
 import auth_functions
+import json
 
 # FastAPI backend URL
 BACKEND_URL = "http://localhost:8000"
@@ -77,6 +78,15 @@ def register_user(email):
         print(f"Failed to register/check user in the database: {response.text}")
         return None
 
+def load_quiz_details(quiz_id):
+    response = requests.get(f"{BACKEND_URL}/quiz-details/{quiz_id}")
+    if response.status_code == 200:
+        quiz_details = response.json()
+        # Display quiz details similarly to how you display a new quiz
+        # This might include displaying questions, options, and marking the user's answers
+    else:
+        st.error("Failed to load quiz details")
+        
 def main():
     if 'user_info' not in st.session_state:
         st.title("Welcome to the MCQ Generator!")
@@ -143,32 +153,41 @@ def main():
                     user_answer = st.radio(question_text, options, key=f"question_{i}")
                     user_answers[i] = user_answer  # Store the actual answer selected by the user
 
-                submitted = st.form_submit_button("Submit Quiz")
+                submitted = st.form_submit_button("Submit Answers")
 
             if submitted:
                 score = 0
                 for i, mcq in enumerate(st.session_state['mcq_details']):
-                    # Get the correct option text
                     correct_option = mcq[f"option_{mcq['correct_answer'].lower()}"]
-                    print(f"User answer for Q{i+1}: {user_answers[i]}")
-                    print(f"Correct answer for Q{i+1}: {correct_option}")
-                    
-                    # Compare the selected answer with the correct option text
                     if user_answers[i] == correct_option:
                         score += 1
                         st.success(f"Q{i+1}: Correct! Explanation: {mcq['explanation']}")
                     else:
                         st.error(f"Q{i+1}: Incorrect! Correct Answer: {correct_option}. Explanation: {mcq['explanation']}")
+
+                # Store the calculated score in the session state
+                st.session_state['calculated_score'] = score
                 st.write(f"Your score: {score}/{len(st.session_state['mcq_details'])}")
+
+            quiz_name = st.text_input("Name your quiz:", key="quiz_name")  # Ensure this is placed correctly in the code
+            if st.button("Save Quiz", key="save_quiz"):
+                mcq_ids = [mcq['id'] for mcq in st.session_state['mcq_details']]
+                # Ensure score is taken from the session state where it was stored
+                calculated_score = st.session_state.get('calculated_score', 0)  # Default to 0 if not found
+                
                 quiz_results = {
-                    "quiz_data": st.session_state['mcq_details'],
-                    "score": score
+                    "email": st.session_state['user_info']['email'],
+                    "quiz_name": quiz_name,
+                    "mcq_ids": mcq_ids,
+                    "score": calculated_score  # Use the calculated score from session state
                 }
-                response = requests.post(f"{BACKEND_URL}/save-quiz-results/", json={"email": st.session_state['user_info']['email'], "quiz_results": quiz_results})
+                print(quiz_results)
+                # Send the request to save the quiz results
+                response = requests.post(f"{BACKEND_URL}/save-quiz-results/", json=quiz_results)
                 if response.status_code == 200:
-                    st.success("Quiz results saved successfully")
+                    st.success("Quiz saved successfully.")
                 else:
-                    st.error("Failed to save quiz results")
+                    st.error(f"Failed to save the quiz. Response: {response.text}")
 
 if __name__ == "__main__":
     main()
