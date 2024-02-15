@@ -98,6 +98,8 @@ def main():
 
         if do_you_have_an_account == 'Yes' and st.button('Sign In'):
             response = sign_in(email, password)
+            if 'auth_warning' in st.session_state and st.session_state['auth_warning']:
+                st.error(st.session_state['auth_warning'])
 
         elif do_you_have_an_account == 'No' and st.button('Create Account'):
             response = create_account(email, password)
