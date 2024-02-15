@@ -109,8 +109,14 @@ def create_account(email: str, password: str) -> dict:
         else:
             return {'success': True, 'email': email, 'verification_email_sent': False}
     except Exception as error:
-        print(error)
-        return {'success': False, 'error': str(error)}
+        error_message = str(error)
+        print(error_message)
+        
+        # Check if the error message contains 'EMAIL_EXISTS'
+        if 'EMAIL_EXISTS' in error_message:
+            return {'success': False, 'error': 'This email already exists. Please sign in or use a different email instead.'}
+        else:
+            return {'success': False, 'error': 'An error occurred during account creation.'}
 
 def reset_password(email:str) -> None:
     try:

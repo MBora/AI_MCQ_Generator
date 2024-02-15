@@ -208,11 +208,14 @@ def main():
 
         elif do_you_have_an_account == 'No' and st.button('Create Account'):
             response = create_account(email, password)
-            if 'auth_success' in st.session_state:
-                st.success(st.session_state['auth_success'])
-                register_user(email)  # Registers the user in your database
-            elif 'auth_warning' in st.session_state:
-                st.error(st.session_state['auth_warning'])
+            if response['success']:
+                # Check if verification email was sent successfully
+                if response['verification_email_sent']:
+                    st.success(f"Account created successfully. A verification email has been sent to {email}.")
+                else:
+                    st.warning(f"Account created for {email}, but there was an issue sending the verification email.")
+            else:
+                st.error(response['error'])  # Display the error message directly from the response
 
         elif do_you_have_an_account == 'I forgot my password' and st.button('Send Password Reset Email'):
             reset_password_response = reset_password(email)
@@ -221,6 +224,8 @@ def main():
             else:
                 st.error("Failed to send password reset email.")
     else:
+        email = st.session_state['user_info']['email']
+        register_user(email)
         # Sidebar navigation buttons
         if st.sidebar.button('MCQ/Quiz Generator'):
             st.session_state['current_page'] = 'mcq_quiz_generation'
