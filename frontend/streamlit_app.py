@@ -55,7 +55,6 @@ def submit_quiz_answers(answers):
     for mcq_id, user_answer in answers.items():
         print(f"Submitting {mcq_id} with answer {user_answer}")  # Debugging line
         response = submit_answer(mcq_id, user_answer)
-        print(response)  # See the backend's response
 
 def fetch_chapter_names():
     response = requests.get(f"{BACKEND_URL}/list-chapters")
@@ -125,11 +124,74 @@ def display_quiz_history():
             selected_quiz = next((quiz for quiz in quiz_history if quiz['quiz_name'] == selected_quiz_name), None)
             if selected_quiz:
                 # Load the quiz details using its ID
-                print(selected_quiz['id'])
                 load_quiz_details(selected_quiz['id'])
     else:
         st.write("No quiz history found.")
 
+def quiz_generation_page():
+    st.title("MCQ Generator")
+
+    chapter_names = fetch_chapter_names()
+    if chapter_names:
+        chapter_names.insert(0, "Select a chapter")
+        selected_chapter_name = st.selectbox("Choose a Chapter", chapter_names)
+
+        if selected_chapter_name != "Select a chapter":
+            chapter_index = chapter_names.index(selected_chapter_name) - 1
+
+            if st.button("Generate MCQ"):
+                mcq = generate_mcq(chapter_index)
+                if mcq:
+                    st.session_state['mcq_details'] = [mcq]  # Adjust for single MCQ
+
+            if st.button("Generate Quiz"):
+                quiz = generate_quiz(chapter_index)
+                if quiz:
+                    st.session_state['mcq_details'] = quiz  # Adjust for quiz questions
+
+    if 'mcq_details' in st.session_state and st.session_state['mcq_details']:
+        with st.form("quiz_form"):
+            user_answers = {}
+            for i, mcq in enumerate(st.session_state['mcq_details']):
+                question_text = f"Q{i+1}: {mcq['question']}"
+                options = [mcq[f"option_{opt}"] for opt in ['a', 'b', 'c', 'd', 'e']]
+                user_answer = st.radio(question_text, options, key=f"question_{i}")
+                user_answers[i] = user_answer  # Store the actual answer selected by the user
+
+            submitted = st.form_submit_button("Submit Answers")
+
+        if submitted:
+            score = 0
+            for i, mcq in enumerate(st.session_state['mcq_details']):
+                correct_option = mcq[f"option_{mcq['correct_answer'].lower()}"]
+                if user_answers[i] == correct_option:
+                    score += 1
+                    st.success(f"Q{i+1}: Correct! Explanation: {mcq['explanation']}")
+                else:
+                    st.error(f"Q{i+1}: Incorrect! Correct Answer: {correct_option}. Explanation: {mcq['explanation']}")
+
+            # Store the calculated score in the session state
+            st.session_state['calculated_score'] = score
+            st.write(f"Your score: {score}/{len(st.session_state['mcq_details'])}")
+
+        quiz_name = st.text_input("Name your quiz:", key="quiz_name")  # Ensure this is placed correctly in the code
+        if st.button("Save Quiz", key="save_quiz"):
+            mcq_ids = [mcq['id'] for mcq in st.session_state['mcq_details']]
+            # Ensure score is taken from the session state where it was stored
+            calculated_score = st.session_state.get('calculated_score', 0)  # Default to 0 if not found
+            
+            quiz_results = {
+                "email": st.session_state['user_info']['email'],
+                "quiz_name": quiz_name,
+                "mcq_ids": mcq_ids,
+                "score": calculated_score  # Use the calculated score from session state
+            }
+            # Send the request to save the quiz results
+            response = requests.post(f"{BACKEND_URL}/save-quiz-results/", json=quiz_results)
+            if response.status_code == 200:
+                st.success("Quiz saved successfully.")
+            else:
+                st.error(f"Failed to save the quiz. Please ensure that the Quiz name is unique.")
 
 def main():
     if 'user_info' not in st.session_state:
@@ -159,83 +221,24 @@ def main():
             else:
                 st.error("Failed to send password reset email.")
     else:
-        email = st.session_state.user_info.get("email")
-        user_data = register_user(email)  # Function to check/register user in DB
-        if user_data:
-            st.session_state.user_info["uid"] = user_data.get("uid")
-            print("OK")
-            # You might want to display a success message or proceed silently
+        # Sidebar navigation buttons
+        if st.sidebar.button('MCQ/Quiz Generator'):
+            st.session_state['current_page'] = 'mcq_quiz_generation'
+        if st.sidebar.button('Quiz History'):
+            st.session_state['current_page'] = 'quiz_history'
 
-        st.write("Your Quiz History")
-        display_quiz_history()
+        # Display the appropriate page based on current_page in session_state
+        if 'current_page' not in st.session_state or st.session_state['current_page'] == 'mcq_quiz_generation':
+            quiz_generation_page()
+        elif st.session_state['current_page'] == 'quiz_history':
+            display_quiz_history()
+
+        # Sign out button
         if st.sidebar.button('Sign Out'):
             sign_out()
+            st.session_state.pop('user_info', None)  # Remove user info from session_state
             st.rerun()
-
-        st.title("MCQ Generator")
-
-        chapter_names = fetch_chapter_names()
-        if chapter_names:
-            chapter_names.insert(0, "Select a chapter")
-            selected_chapter_name = st.selectbox("Choose a Chapter", chapter_names)
-
-            if selected_chapter_name != "Select a chapter":
-                chapter_index = chapter_names.index(selected_chapter_name) - 1
-
-                if st.button("Generate MCQ"):
-                    mcq = generate_mcq(chapter_index)
-                    if mcq:
-                        st.session_state['mcq_details'] = [mcq]  # Adjust for single MCQ
-
-                if st.button("Generate Quiz"):
-                    quiz = generate_quiz(chapter_index)
-                    if quiz:
-                        st.session_state['mcq_details'] = quiz  # Adjust for quiz questions
-
-        if 'mcq_details' in st.session_state and st.session_state['mcq_details']:
-            with st.form("quiz_form"):
-                user_answers = {}
-                for i, mcq in enumerate(st.session_state['mcq_details']):
-                    question_text = f"Q{i+1}: {mcq['question']}"
-                    options = [mcq[f"option_{opt}"] for opt in ['a', 'b', 'c', 'd', 'e']]
-                    user_answer = st.radio(question_text, options, key=f"question_{i}")
-                    user_answers[i] = user_answer  # Store the actual answer selected by the user
-
-                submitted = st.form_submit_button("Submit Answers")
-
-            if submitted:
-                score = 0
-                for i, mcq in enumerate(st.session_state['mcq_details']):
-                    correct_option = mcq[f"option_{mcq['correct_answer'].lower()}"]
-                    if user_answers[i] == correct_option:
-                        score += 1
-                        st.success(f"Q{i+1}: Correct! Explanation: {mcq['explanation']}")
-                    else:
-                        st.error(f"Q{i+1}: Incorrect! Correct Answer: {correct_option}. Explanation: {mcq['explanation']}")
-
-                # Store the calculated score in the session state
-                st.session_state['calculated_score'] = score
-                st.write(f"Your score: {score}/{len(st.session_state['mcq_details'])}")
-
-            quiz_name = st.text_input("Name your quiz:", key="quiz_name")  # Ensure this is placed correctly in the code
-            if st.button("Save Quiz", key="save_quiz"):
-                mcq_ids = [mcq['id'] for mcq in st.session_state['mcq_details']]
-                # Ensure score is taken from the session state where it was stored
-                calculated_score = st.session_state.get('calculated_score', 0)  # Default to 0 if not found
-                
-                quiz_results = {
-                    "email": st.session_state['user_info']['email'],
-                    "quiz_name": quiz_name,
-                    "mcq_ids": mcq_ids,
-                    "score": calculated_score  # Use the calculated score from session state
-                }
-                print(quiz_results)
-                # Send the request to save the quiz results
-                response = requests.post(f"{BACKEND_URL}/save-quiz-results/", json=quiz_results)
-                if response.status_code == 200:
-                    st.success("Quiz saved successfully.")
-                else:
-                    st.error(f"Failed to save the quiz. Please ensure that the Quiz name is unique.")
+    
 
 if __name__ == "__main__":
     main()
