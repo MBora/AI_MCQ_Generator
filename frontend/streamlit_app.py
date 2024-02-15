@@ -80,14 +80,57 @@ def register_user(email):
         return None
 
 def load_quiz_details(quiz_id):
+    # Request quiz details from backend
     response = requests.get(f"{BACKEND_URL}/quiz-details/{quiz_id}")
     if response.status_code == 200:
         quiz_details = response.json()
-        # Display quiz details similarly to how you display a new quiz
-        # This might include displaying questions, options, and marking the user's answers
+        st.write(f"Quiz Name: {quiz_details['quiz_name']}")
+        st.write(f"Score: {quiz_details['score']}")
+        st.write(f"Timestamp: {quiz_details['timestamp']}")
+
+        # Example: Display each question and its details
+        for mcq in quiz_details['mcq_details']:
+            st.subheader(f"Question: {mcq['question']}")
+            st.write(f"A: {mcq['option_a']}")
+            st.write(f"B: {mcq['option_b']}")
+            st.write(f"C: {mcq['option_c']}")
+            st.write(f"D: {mcq['option_d']}")
+            st.write(f"E: {mcq['option_e']}")
+            st.write(f"Correct Answer: {mcq['correct_answer']}")
+            st.write(f"Explanation: {mcq['explanation']}")
+            st.write("---")  # Just to add a separator for readability
     else:
         st.error("Failed to load quiz details")
-        
+
+def fetch_quiz_history(user_uid):
+    response = requests.get(f"{BACKEND_URL}/quiz-history/{user_uid}")
+    if response.status_code == 200:
+        return response.json()  # Returns a list of quizzes
+    else:
+        st.error("Failed to fetch quiz history")
+        return []
+
+def display_quiz_history():
+    # Fetch quiz history for the current user
+    user_uid = st.session_state.user_info['localId']  # Assume localId is stored in session_state after login
+    quiz_history = fetch_quiz_history(user_uid)
+
+    if quiz_history:
+        # Create a select box to choose a quiz from history
+        quiz_names = [quiz['quiz_name'] for quiz in quiz_history]
+        selected_quiz_name = st.selectbox("Select a quiz to review:", [""] + quiz_names)
+
+        if selected_quiz_name:
+            # Find the selected quiz details
+            selected_quiz = next((quiz for quiz in quiz_history if quiz['quiz_name'] == selected_quiz_name), None)
+            if selected_quiz:
+                # Load the quiz details using its ID
+                print(selected_quiz['id'])
+                load_quiz_details(selected_quiz['id'])
+    else:
+        st.write("No quiz history found.")
+
+
 def main():
     if 'user_info' not in st.session_state:
         st.title("Welcome to the MCQ Generator!")
@@ -123,6 +166,8 @@ def main():
             print("OK")
             # You might want to display a success message or proceed silently
 
+        st.write("Your Quiz History")
+        display_quiz_history()
         if st.sidebar.button('Sign Out'):
             sign_out()
             st.rerun()

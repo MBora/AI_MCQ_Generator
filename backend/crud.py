@@ -2,6 +2,7 @@
 from sqlalchemy import insert, select
 from database import engine, mcqs, users, quiz_results
 import uuid
+import json
 
 def insert_mcq(mcq_data):
     with engine.connect() as connection:
@@ -129,3 +130,53 @@ def save_quiz_result_to_db(user_uid, quiz_name, mcq_ids_json, score):
             transaction.rollback()
             print(f"Error saving quiz result: {e}")
             return None
+
+def fetch_quiz_history_for_user(user_uid: str):
+    with engine.connect() as connection:
+        # Correctly pass column objects as arguments to select()
+        query = select(
+            quiz_results.c.id, 
+            quiz_results.c.quiz_name, 
+            quiz_results.c.score, 
+            quiz_results.c.timestamp
+        ).where(quiz_results.c.user_uid == user_uid)
+
+        result = connection.execute(query).fetchall()
+
+        quiz_history = [
+            {
+                "id": row.id, 
+                "quiz_name": row.quiz_name, 
+                "score": row.score, 
+                "timestamp": row.timestamp.isoformat() if row.timestamp else None
+            } for row in result
+        ]
+
+        return quiz_history
+    
+def fetch_quiz_details_by_id(quiz_id: int):
+    print("Fetching quiz details for ID:", quiz_id)
+    with engine.connect() as connection:
+        # Use the select function to build a query
+        query = select(quiz_results).where(quiz_results.c.id == quiz_id)
+        result = connection.execute(query).fetchone()
+        
+        if result:
+            # Convert the result into a dictionary
+            quiz_details = {
+                "id": result.id,
+                "user_uid": result.user_uid,
+                "quiz_name": result.quiz_name,
+                "quiz_data": result.quiz_data,
+                "score": result.score,
+                "timestamp": result.timestamp.isoformat() if result.timestamp else None
+            }
+
+            # Deserialize 'quiz_data' if necessary
+            if quiz_details.get('quiz_data'):
+                quiz_details['quiz_data'] = json.loads(quiz_details['quiz_data'])
+
+            return quiz_details
+        else:
+            return None
+

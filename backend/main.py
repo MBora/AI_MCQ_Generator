@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from crud import insert_mcq, get_mcq_details, insert_user, get_user_by_email, save_quiz_result_to_db, get_user_by_email_safe
 from database import engine, mcqs
 import logging
+from crud import fetch_quiz_details_by_id
+from crud import fetch_quiz_history_for_user
 
 # load OPENAI_API_KEY from .env file
 from dotenv import load_dotenv
@@ -161,21 +163,46 @@ async def save_quiz_results(request: Request):
         # This assumes that every failure is due to a duplicate quiz name, which might not always be the case
         # It's a more generic error response, not specifically tied to the IntegrityError
         raise HTTPException(status_code=400, detail="An error occurred while saving the quiz")
+
+@app.get("/quiz-history/{user_uid}")
+async def get_quiz_history(user_uid: str):
+    # Fetch quiz history from the database for the given user UID
+    # Make sure this function or query is correctly implemented
+    quiz_history = fetch_quiz_history_for_user(user_uid)
+    if quiz_history:
+        return quiz_history
+    else:
+        raise HTTPException(status_code=404, detail="No quiz history found for the user")
     
-# @app.get("/quiz-history/{user_uid}")
-# async def get_quiz_history(user_uid: str):
-#     # Fetch quiz history from the database for the given user UID
-#     # This is a placeholder function call
-#     quiz_history = fetch_quiz_history_for_user(user_uid)
-#     return quiz_history
+@app.get("/quiz-details/{quiz_id}")
+async def get_quiz_details(quiz_id: int):
+    try:
+        print("BEFORE", quiz_id)
+        quiz_details = fetch_quiz_details_by_id(quiz_id)
+        print("AFTER", quiz_details)
+        if quiz_details:
+            print("QUIZ DETAILS", quiz_details)
+            # Directly iterate over quiz_data assuming it's already a list
+            mcq_ids = quiz_details['quiz_data']
+            print("MCQ IDs:", mcq_ids)
+            
+            mcq_details_list = []
+            for mcq_id in mcq_ids:
+                print("MCQ ID:", mcq_id)  # Print each MCQ ID
+                mcq_details = get_mcq_details(mcq_id)
+                if mcq_details:
+                    mcq_details_list.append(mcq_details)
+                else:
+                    print(f"Details for MCQ ID {mcq_id} not found.")
 
-# @app.get("/quiz-details/{quiz_id}")
-# async def get_quiz_details(quiz_id: int):
-#     # Fetch details for a specific quiz
-#     # This is a placeholder function call
-#     quiz_details = fetch_quiz_details(quiz_id)
-#     return quiz_details
-
+            print("MCQ DETAILS", mcq_details_list)
+            quiz_details['mcq_details'] = mcq_details_list
+            return quiz_details
+        else:
+            return HTTPException(status_code=404, detail="Quiz details not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
 # Run the server
 if __name__ == "__main__":
     import uvicorn
