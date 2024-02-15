@@ -25,9 +25,9 @@ def generate_mcq(chapter_index):
         st.error("Error generating MCQ")
         return None
 
-def generate_quiz(chapter_index):
+def generate_quiz(chapter_index, num_questions):
     questions = []
-    for _ in range(2):  # Aim to generate 2 questions
+    for _ in range(num_questions):  # Use the specified number of questions
         mcq_response = generate_mcq(chapter_index)
         if mcq_response and isinstance(mcq_response, dict):
             questions.append(mcq_response)
@@ -136,19 +136,22 @@ def quiz_generation_page():
         chapter_names.insert(0, "Select a chapter")
         selected_chapter_name = st.selectbox("Choose a Chapter", chapter_names)
 
+        # Input for the number of questions
+        num_questions = st.number_input("Number of Questions", min_value=1, max_value=10, value=1)  # Adjust limits as needed
+
         if selected_chapter_name != "Select a chapter":
             chapter_index = chapter_names.index(selected_chapter_name) - 1
 
-            if st.button("Generate MCQ"):
-                mcq = generate_mcq(chapter_index)
-                if mcq:
-                    st.session_state['mcq_details'] = [mcq]  # Adjust for single MCQ
+            # if st.button("Generate MCQ"):
+            #     mcq = generate_mcq(chapter_index)
+            #     if mcq:
+            #         st.session_state['mcq_details'] = [mcq]
 
             if st.button("Generate Quiz"):
-                quiz = generate_quiz(chapter_index)
+                quiz = generate_quiz(chapter_index, num_questions)  # Pass the number of questions
                 if quiz:
-                    st.session_state['mcq_details'] = quiz  # Adjust for quiz questions
-
+                    st.session_state['mcq_details'] = quiz
+        
     if 'mcq_details' in st.session_state and st.session_state['mcq_details']:
         with st.form("quiz_form"):
             user_answers = {}
@@ -193,6 +196,19 @@ def quiz_generation_page():
             else:
                 st.error(f"Failed to save the quiz. Please ensure that the Quiz name is unique.")
 
+         # New Quiz button
+        if st.button("New Quiz"):
+            # Reset relevant parts of the session state
+            if 'mcq_details' in st.session_state:
+                del st.session_state['mcq_details']
+            if 'calculated_score' in st.session_state:
+                del st.session_state['calculated_score']
+            
+            # Optionally, set the page state to ensure it navigates to the quiz generation page
+            st.session_state['current_page'] = 'mcq_quiz_generation'
+            
+            # Rerun the app to refresh the state
+            st.rerun()
 def main():
     if 'user_info' not in st.session_state:
         st.title("Welcome to the MCQ Generator!")
