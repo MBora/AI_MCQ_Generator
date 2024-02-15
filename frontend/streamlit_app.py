@@ -69,8 +69,9 @@ def fetch_chapter_names():
         return []
 
 def register_user(email):
-    # Make a POST request to the backend to register/fetch the user
-    response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email})
+    # Assume `localId` is available in `st.session_state.user_info` after successful authentication
+    localId = st.session_state.user_info['localId']
+    response = requests.post(f"{BACKEND_URL}/register-user", json={"email": email, "localId": localId})
     if response.status_code in [200, 201]:  # Considering both 'OK' and 'Created' responses
         user_data = response.json()
         return user_data  # This includes UID and potentially other user data

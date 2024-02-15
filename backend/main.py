@@ -124,29 +124,19 @@ async def list_chapters():
 
 class UserRegister(BaseModel):
     email: str
+    localId: str 
+    
 import logging
 
 @app.post("/register-user")
 async def register_user(user: UserRegister):
-    
-    logger = logging.getLogger("uvicorn.info")
-    logger.info(f"Registering user: {user.email}")
-    print(f"Received registration request for email: {user.email}")
-    # Assuming get_user_by_email and insert_user are properly defined in your backend
-    print("USER EMAIL", user.email)
     existing_user = get_user_by_email(user.email)
     if existing_user:
-        # User exists, return their existing UID
         return {"uid": existing_user["uid"]}
     else:
-        # User does not exist, so generate a new UID (or use Firebase UID if available)
-        user_uid = str(uuid.uuid4())
-        # Insert the new user with this UID and email into the database
-        user_id, user_uid = insert_user({"uid": user_uid, "email": user.email})
-        if user_id:
-            return {"uid": user_uid}
-        else:
-            raise HTTPException(status_code=500, detail="Error registering user")
+        # Directly use the localId from Firebase
+        user_id = insert_user({"uid": user.localId, "email": user.email})
+        return {"uid": user.localId}
 
 @app.post("/save-quiz-results/")
 async def save_quiz_results(request: Request):

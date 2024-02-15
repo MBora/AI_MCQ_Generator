@@ -50,22 +50,21 @@ def insert_user(user_data):
     with engine.connect() as connection:
         transaction = connection.begin()
         try:
-            # Generate a unique UUID
-            user_uuid = str(uuid.uuid4())
+            # Use the localId from Firebase instead of generating a new UUID
             ins_query = users.insert().values(
-                uid=user_uuid,  # Use the generated UUID
+                uid=user_data["uid"],  # Use the Firebase localId
                 email=user_data["email"],
                 # Add other fields as needed
             )
             result = connection.execute(ins_query)
             user_id = result.inserted_primary_key[0]
             transaction.commit()
-            # Return both the internal user ID and the UUID
-            return user_id, user_uuid
+            # Since we're directly using the provided UID, no need to return it again, just return the internal DB ID if needed
+            return user_id
         except Exception as e:
             transaction.rollback()
             print("Error during user insertion:", e)
-            return None, None
+            return None
 
 def get_user_by_uid(uid: str):
     with engine.connect() as connection:
@@ -79,20 +78,18 @@ def get_user_by_uid(uid: str):
 
 def get_user_by_email(email: str):
     with engine.connect() as connection:
-        # Prepare a SELECT statement
         query = select(users).where(users.c.email == email)
         result = connection.execute(query).fetchone()
         print(f"Result: {result}")
-        print("Email", email)
+
         if result:
-            # Convert the result into a dictionary for easier access
-            user_info = {column: value for column, value in zip(result.keys(), result)}
+            # Use the _mapping attribute of RowProxy for a dictionary-like access
+            user_info = dict(result._mapping)
             print(f"User Info: {user_info}")
             return user_info
         else:
             return None
-        
-from sqlalchemy import select
+
 
 def get_user_by_email_safe(email: str):
     with engine.connect() as connection:
