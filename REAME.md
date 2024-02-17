@@ -8,14 +8,7 @@ This application generates multiple-choice questions (MCQs) based on the content
 
 ## Prerequisites
 
-Before running this application, ensure you have the following installed:
-- Python 3.10
-- FastAPI
-- Uvicorn
-- OpenAI Python library
-- python-dotenv library
-- requests library (for testing)
-- llama-index library
+Before running this application, ensure you have docker installed
 
 ## Installation
 
@@ -23,44 +16,30 @@ Before running this application, ensure you have the following installed:
    ```bash
    git clone <repository-url>
    ```
-
-2. Navigate to the application directory:
-   ```bash
-   cd src
-   ```
-
-3. Install the required Python libraries:
-   ```bash
-   pip install fastapi uvicorn openai python-dotenv requests llama-index
-   ```
-
-4. Create a `.env` file in the src directory of the application and add your OpenAI API key:
-   ```plaintext
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
+2. Inside frontend/.streamlit create a secrets.toml file with your firebase api key.
+   
+3. Create a `.env` file similar to .env.example with the credentials:
 
 ### Data Ingestion
-1. Store you pdf files in the `data/` directory
+1. Store you pdf files in the `backend/data/` directory
 
 2. Run the following command to ingest the data:
    ```bash
    python ingest.py
    ```
    This will create a `processed_data/` directory with the processed data stored as .pkls
-## Running the Application
-1. Create the mysql database using docker
-   ```
-   docker pull mysql
-   
-   docker run --name mysql-db -e MYSQL_ROOT_PASSWORD=my-secret-pw -e MYSQL_DATABASE=mydatabase -p 3306:3306 -d mysql
-   ```
-2. Start the FastAPI server:
-   ```bash
-   uvicorn main:app --reload
-   ```
-   The `--reload` flag enables auto-reloading of the server on code changes.
 
-3. Access the Swagger UI to interact with the API at `http://localhost:8000/docs`.
+## Running the Application
+1. Run the app using docker
+   ```
+   docker compose up --build
+   ```
+   or
+   ```
+   docker-compose up --build
+   ```
+
+2. Access the Swagger UI to interact with the API at `http://localhost:8000/docs`.
 
 ## Usage
 
