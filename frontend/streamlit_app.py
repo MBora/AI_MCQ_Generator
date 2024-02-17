@@ -4,9 +4,10 @@ import requests
 from auth_functions import sign_in, create_account, sign_out, reset_password
 import auth_functions
 import json
+import os
 
 # FastAPI backend URL
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
 
 def generate_mcq(chapter_index):
     response = requests.post(f"{BACKEND_URL}/generate-mcq/{chapter_index}")

@@ -4,7 +4,7 @@ from sqlalchemy import DateTime
 import datetime
 from sqlalchemy.sql import func
 
-DATABASE_URL = "mysql+pymysql://root:my-secret-pw@localhost/mcq_database"
+DATABASE_URL = "mysql+pymysql://root:my-secret-pw@mysql-db/mydatabase"
 engine = create_engine(DATABASE_URL)
 metadata = MetaData()
 

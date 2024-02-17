@@ -34,7 +34,7 @@ async def generate_mcq(chapter_index: int = 0):
     # get the list of pkls from the processed_data folder
     pkls = []
     try:
-        for file_name in os.listdir("../processed_data"):
+        for file_name in os.listdir("./processed_data"):
             if file_name.endswith(".pkl"):
                 pkls.append(file_name)
     except:
@@ -48,7 +48,7 @@ async def generate_mcq(chapter_index: int = 0):
        
     # open pkl from pkl 
     try:
-        with open(f"../processed_data/{pkls[chapter_index]}", "rb") as f:
+        with open(f"./processed_data/{pkls[chapter_index]}", "rb") as f:
             nodes = pickle.load(f)
     except:
         raise HTTPException(status_code=404, detail="Error opening PKL file")
@@ -114,7 +114,7 @@ async def get_mcq(mcq_id: int):
 @app.get("/list-chapters")
 async def list_chapters():
     # Path to the processed_data folder
-    processed_data_folder = "../processed_data"  # Adjust the path as necessary
+    processed_data_folder = "./processed_data"  # Adjust the path as necessary
     try:
         # List all .pkl files in the folder
         pkl_files = [file_name for file_name in os.listdir(processed_data_folder) if file_name.endswith(".pkl")]
