@@ -3,8 +3,10 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 from sqlalchemy import DateTime
 import datetime
 from sqlalchemy.sql import func
+import os
 
-DATABASE_URL = "mysql+pymysql://root:my-secret-pw@mysql-db/mydatabase"
+DATABASE_URL = os.getenv("DATABASE_URL")
+# DATABASE_URL = "mysql+pymysql://root:my-secret-pw@mysql-db/mydatabase"
 engine = create_engine(DATABASE_URL)
 metadata = MetaData()
 
